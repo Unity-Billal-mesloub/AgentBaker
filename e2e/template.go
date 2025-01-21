@@ -1,19 +1,39 @@
 package e2e
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
+	"testing"
 
 	"github.com/Azure/agentbaker/pkg/agent"
 	"github.com/Azure/agentbaker/pkg/agent/datamodel"
 	nbcontractv1 "github.com/Azure/agentbaker/pkg/proto/nbcontract/v1"
 	"github.com/Azure/agentbakere2e/config"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v6"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/Masterminds/semver"
 )
 
+func getBaseNodeBootstrappingConfiguration(ctx context.Context, t *testing.T, kube *Kubeclient, cluster *armcontainerservice.ManagedCluster) (*datamodel.NodeBootstrappingConfiguration, error) {
+	t.Log("getting the node bootstrapping configuration for cluster")
+	clusterParams := extractClusterParameters(ctx, t, kube)
+	nbc, err := baseTemplate(config.Config.Location, *cluster.Properties.CurrentKubernetesVersion)
+	if err != nil {
+		return nil, err
+	}
+	nbc.ContainerService.Properties.CertificateProfile.CaCertificate = string(clusterParams.CACert)
+	nbc.KubeletClientTLSBootstrapToken = &clusterParams.BootstrapToken
+	nbc.ContainerService.Properties.HostedMasterProfile.FQDN = clusterParams.FQDN
+	return nbc, nil
+}
+
+// is a temporary workaround
+// eventually we want to phase out usage of nbc
 func nbcToNbcContractV1(nbc *datamodel.NodeBootstrappingConfiguration) *nbcontractv1.Configuration {
 	cs := nbc.ContainerService
 	agentPool := nbc.AgentPoolProfile
+	agent.ValidateAndSetLinuxNodeBootstrappingConfiguration(nbc)
 
 	config := &nbcontractv1.Configuration{
 		Version:            "v0",
@@ -86,12 +106,12 @@ func nbcToNbcContractV1(nbc *datamodel.NodeBootstrappingConfiguration) *nbcontra
 // TODO(ace): minimize the actual required defaults.
 // this is what we previously used for bash e2e from e2e/nodebootstrapping_template.json.
 // which itself was extracted from baker_test.go logic, which was inherited from aks-engine.
-func baseTemplate(location string) *datamodel.NodeBootstrappingConfiguration {
+func baseTemplate(location, kubernetesVersion string) (*datamodel.NodeBootstrappingConfiguration, error) {
 	var (
 		trueConst  = true
 		falseConst = false
 	)
-	return &datamodel.NodeBootstrappingConfiguration{
+	config := &datamodel.NodeBootstrappingConfiguration{
 		Version: "v0",
 		ContainerService: &datamodel.ContainerService{
 			ID:       "",
@@ -522,12 +542,24 @@ func baseTemplate(location string) *datamodel.NodeBootstrappingConfiguration {
 		SSHStatus:                 0,
 		DisableCustomData:         false,
 	}
+	version, err := semver.NewVersion(kubernetesVersion)
+	if err != nil {
+		return nil, err
+	}
+	constraint, err := semver.NewConstraint(">= 1.30.0")
+	if err != nil {
+		return nil, err
+	}
+	if constraint.Check(version) {
+		delete(config.KubeletConfig, "--azure-container-registry-config")
+	}
+	return config, nil
 }
 
 func getHTTPServerTemplate(podName, nodeName string, isAirgap bool) string {
 	image := "mcr.microsoft.com/cbl-mariner/busybox:2.0"
 	if isAirgap {
-		image = fmt.Sprintf("%s.azurecr.io/aks/cbl-mariner/busybox:2.0", config.PrivateACRName)
+		image = fmt.Sprintf("%s.azurecr.io/cbl-mariner/busybox:2.0", config.PrivateACRName)
 	}
 
 	return fmt.Sprintf(`apiVersion: v1
