@@ -59,6 +59,18 @@ installKataDeps() {
     fi
 }
 
+installHWEKernel() {
+    if [ "$OS_VERSION" != "1.0" ]; then
+      echo "Installing HWE kernel package"
+      if ! dnf_install 30 1 600 kernel-hwe; then
+        exit $ERR_APT_INSTALL_TIMEOUT
+      fi
+      # Remove default kernel package to ensure HWE kernel is selected
+      echo "Removing default kernel package to ensure HWE kernel is used"
+      retrycmd_if_failure 10 5 60 dnf remove -y kernel || echo "Default kernel package removal failed or not installed"
+    fi
+}
+
 installCriCtlPackage() {
   version="${1:-}"
   packageName="kubernetes-cri-tools-${version}"

@@ -237,6 +237,9 @@ if isMarinerOrAzureLinux "$OS" && ! isAzureLinuxOSGuard "$OS" "$OS_VARIANT"; the
       if [ "${OS}" != "3.0" ]; then
         enableMarinerKata
       fi
+    else
+      # For non-kata builds, install HWE kernel by default
+      installHWEKernel
     fi
     disableTimesyncd
     disableDNFAutomatic

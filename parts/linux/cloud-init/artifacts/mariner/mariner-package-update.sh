@@ -33,6 +33,7 @@ dnf_update() {
         ! ($update_cmd update \
             --exclude mshv-linuxloader \
             --exclude kernel-mshv \
+            --exclude kernel-hwe \
             "${repo_list[@]}" \
             -y --refresh 2>&1 | tee $dnf_update_output | grep -E "^([WE]:.*)|([eE]rr.*)$") && \
         cat $dnf_update_output && break || \
