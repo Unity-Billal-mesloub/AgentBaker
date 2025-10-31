@@ -49,6 +49,12 @@ installDeps() {
         fi
       done
     fi
+
+    # Disable cloud-init management of SCSI resource disk via udev rules
+    # This prevents walinuxagent from creating /dev/disk/azure/resource symlinks
+    # which cloud-init maps to /dev/disk/cloud/azure_resource and can cause timing issues with LUKS-encrypted custom images
+    echo "Disabling Azure storage udev rules to prevent cloud-init SCSI resource disk management"
+    ln -sf /dev/null /etc/udev/rules.d/66-azure-storage.rules || echo "Warning: Failed to disable azure-storage udev rules"
 }
 
 installKataDeps() {
