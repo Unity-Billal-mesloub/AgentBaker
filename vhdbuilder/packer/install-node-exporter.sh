@@ -69,7 +69,7 @@ node_exporter_copy_baseline_assets() {
 }
 
 node_exporter_install_deb_stack() {
-    local download_dir="${NODE_EXPORTER_BUILD_ROOT}/downloads"
+    local download_dir="${NODE_EXPORTER_BUILD_ROOT}"
     mkdir -p "${download_dir}"
 
     local package_name="node-exporter-kubernetes"
@@ -85,7 +85,7 @@ node_exporter_install_deb_stack() {
 }
 
 node_exporter_install_rpm_stack() {
-    local download_dir="${NODE_EXPORTER_BUILD_ROOT}/downloads"
+    local download_dir="${NODE_EXPORTER_BUILD_ROOT}"
     mkdir -p "${download_dir}"
 
     local package_name="node-exporter-kubernetes"
