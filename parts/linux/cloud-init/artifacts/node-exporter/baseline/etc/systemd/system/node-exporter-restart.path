@@ -1,0 +1,5 @@
+[Path]
+PathModified=/var/lib/kubelet/pki/kubelet.crt
+
+[Install]
+WantedBy=multi-user.target

@@ -17,7 +17,7 @@ if [ "${installed}" -ne 0 ]; then
         sudo apt-get install shellcheck -y
     elif [ "${DISTRO}" = "darwin" ]; then
         brew install cabal-install shellcheck
-    else 
+    else
         echo "distro ${DISTRO} not supported at this time. skipping shellcheck"
         exit 1
     fi
@@ -93,8 +93,10 @@ shellcheck $(printf -- "-e %s " $IGNORED) $filesToCheck
 # Checking SC3010 using [ ] instead of [[ ]] for POSIX compliance.
 # Checking SC3014 that == in place of = is undefined in POSIX.
 # We can add more checks if needed.
+# Note: Exclude node-exporter scripts as they are bash scripts with bash-specific syntax
 POSIX_CHECKS="
 SC3010
 SC3014
 "
-shellcheck "--shell=sh" $(printf -- "-i %s " $POSIX_CHECKS) $filesToCheck
+filesToCheckPosix=$(echo "$filesToCheck" | grep -v "node-problem-detector" | grep -v "node-exporter")
+shellcheck "--shell=sh" $(printf -- "-i %s " $POSIX_CHECKS) $filesToCheckPosix

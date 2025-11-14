@@ -29,6 +29,7 @@ source /home/packer/provision_source_benchmarks.sh
 source /home/packer/provision_source_distro.sh
 source /home/packer/tool_installs.sh
 source /home/packer/tool_installs_distro.sh
+source "${THIS_DIR}/install-node-exporter.sh"
 
 CPU_ARCH=$(getCPUArch)  #amd64 or arm64
 VHD_LOGS_FILEPATH=/opt/azure/vhd-install.complete
@@ -378,6 +379,14 @@ while IFS= read -r p; do
         echo "  - azure-acr-credential-provider version ${version}" >> ${VHD_LOGS_FILEPATH}
         # ORAS will be used to install other packages for network isolated clusters, it must go first.
       done
+      ;;
+    "node-exporter")
+      if isFlatcar "$OS" || isAzureLinuxOSGuard "$OS" "$OS_VARIANT"; then
+        echo "Skipping node-exporter installation for ${OS} ${OS_VARIANT:-default}"
+      else
+        # installNodeExporter is defined in install-node-exporter.sh
+        installNodeExporter "${p}" "${downloadDir}"
+      fi
       ;;
     "kubernetes-binaries")
       # kubelet and kubectl
