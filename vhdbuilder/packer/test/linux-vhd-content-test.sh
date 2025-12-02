@@ -1381,6 +1381,67 @@ testBccTools () {
   return 0
 }
 
+testNodeExporter () {
+  local test="NodeExporterInstallTest"
+  local os_sku="${1}"
+
+  echo "$test: checking if node-exporter was successfully installed"
+
+  # Skip check for OS variants that don't have node-exporter
+  if [ "$os_sku" = "AzureLinuxOSGuard" ] || [ "$os_sku" = "Flatcar" ]; then
+    echo "$test: Skipping check on $os_sku - node-exporter is not installed"
+    return 0
+  fi
+
+  # Check for the skip sentinel file - this is essential for e2e testing
+  # If this file doesn't exist, e2e tests will silently skip node-exporter validation. Which is bad.
+  local skip_file="/etc/node-exporter.d/skip_vhd_node_exporter"
+  if [ ! -f "$skip_file" ]; then
+    err "$test" "Skip sentinel file $skip_file does not exist - e2e tests will silently skip validation!"
+    return 1
+  fi
+  echo "$test: Skip sentinel file $skip_file exists (required for e2e test detection)"
+
+  # Check that the binary exists
+  if [ ! -f "/usr/bin/node-exporter" ]; then
+    err "$test" "node-exporter binary does not exist at /usr/bin/node-exporter"
+    return 1
+  fi
+  echo "$test: node-exporter binary exists"
+
+  # Check that the startup script exists
+  if [ ! -f "/usr/local/bin/node-exporter-startup.sh" ]; then
+    err "$test" "node-exporter startup script does not exist at /usr/local/bin/node-exporter-startup.sh"
+    return 1
+  fi
+  echo "$test: node-exporter startup script exists"
+
+  # Check that the service file exists
+  if [ ! -f "/etc/systemd/system/node-exporter.service" ]; then
+    err "$test" "node-exporter service file does not exist at /etc/systemd/system/node-exporter.service"
+    return 1
+  fi
+  echo "$test: node-exporter service file exists"
+
+  # Check that the web config exists
+  if [ ! -f "/etc/node-exporter.d/web-config.yml" ]; then
+    err "$test" "node-exporter web config does not exist at /etc/node-exporter.d/web-config.yml"
+    return 1
+  fi
+  echo "$test: node-exporter web config exists"
+
+  # Check that the service is enabled
+  is_enabled=$(systemctl is-enabled node-exporter.service 2>/dev/null)
+  if [ "${is_enabled}" != "enabled" ]; then
+    err "$test" "node-exporter.service is not enabled, state is: $is_enabled"
+    return 1
+  fi
+  echo "$test: node-exporter.service is enabled"
+
+  echo "$test: node-exporter was successfully installed"
+  return 0
+}
+
 testAKSNodeControllerBinary () {
   local test="testAKSNodeControllerBinary"
   local go_binary_path="/opt/azure/containers/aks-node-controller"
@@ -1683,6 +1744,7 @@ testPamDSettings $OS_SKU $OS_VERSION
 testPam $OS_SKU $OS_VERSION
 testUmaskSettings
 testContainerImagePrefetchScript
+testNodeExporter $OS_SKU
 testAKSNodeControllerBinary
 testAKSNodeControllerService
 testLtsKernel $OS_VERSION $OS_SKU $ENABLE_FIPS
