@@ -97,7 +97,19 @@ downloadGPUDrivers() {
     #
     # The proprietary driver will be used here in order to support older NVIDIA GPU SKUs like V100
     # Before installing cuda, check the active kernel version (uname -r) and use that to determine which cuda to install
+    
     KERNEL_VERSION=$(uname -r | sed 's/-/./g')
+    
+    # Create directory for GPU driver info and write debug info
+    mkdir -p /opt/azure/gpu-driver-info
+    echo "KERNEL_VERSION=${KERNEL_VERSION}" > /opt/azure/gpu-driver-info/vmsize.txt
+    echo "USE_OPEN_GPU_DRIVER=${USE_OPEN_GPU_DRIVER}" >> /opt/azure/gpu-driver-info/vmsize.txt
+    
+    # Check if this VM size requires open-source driver
+    if [ "${USE_OPEN_GPU_DRIVER}" = "true" ]; then
+        echo "Note: This VM size requires open-source GPU driver (cuda-open)"
+    fi
+    
     CUDA_PACKAGE=$(dnf repoquery -y --available "cuda*" | grep -E "cuda-[0-9]+.*_$KERNEL_VERSION" | sort -V | tail -n 1)
 
     if [ -z "$CUDA_PACKAGE" ]; then

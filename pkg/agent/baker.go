@@ -1057,6 +1057,11 @@ func getContainerServiceFuncMap(config *datamodel.NodeBootstrappingConfiguration
 		"GPUNeedsFabricManager": func() bool {
 			return GPUNeedsFabricManager(profile.VMSize)
 		},
+		"UseOpenGPUDriver": func() bool {
+			// TODO: Dummy implementation for testing cuda-open (open-source) driver selection
+			// This should be replaced with proper logic to detect VM sizes that need open-source drivers
+			return profile.VMSize == "Standard_NC24ads_A100_v4"
+		},
 		"GPUDriverVersion": func() string {
 			return GetGPUDriverVersion(profile.VMSize)
 		},
