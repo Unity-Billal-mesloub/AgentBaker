@@ -1058,9 +1058,14 @@ func getContainerServiceFuncMap(config *datamodel.NodeBootstrappingConfiguration
 			return GPUNeedsFabricManager(profile.VMSize)
 		},
 		"UseOpenGPUDriver": func() bool {
-			// TODO: Dummy implementation for testing cuda-open (open-source) driver selection
-			// This should be replaced with proper logic to detect VM sizes that need open-source drivers
-			return profile.VMSize == "Standard_NC24ads_A100_v4"
+			// Legacy GPUs (T4, V100) use proprietary drivers; A100+ use open-source drivers
+			// T4 GPUs: NC*_T4_v3 family
+			// V100 GPUs: NDv2 (nd40rs_v2), NDv3 (nd40s_v3), NCsv3 (nc*s_v3)
+			lower := strings.ToLower(profile.VMSize)
+			return !strings.Contains(lower, "t4_v3") &&
+				!strings.Contains(lower, "nd40rs_v2") &&
+				!strings.Contains(lower, "nd40s_v3") &&
+				!(strings.HasPrefix(lower, "standard_nc") && strings.Contains(lower, "s_v3"))
 		},
 		"GPUDriverVersion": func() string {
 			return GetGPUDriverVersion(profile.VMSize)
